@@ -22,24 +22,37 @@ const firebaseConfig = {
   measurementId: "G-DRMYGDKDDE"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Analytics safely (often blocked by ad-blockers)
+let app;
+let db: any = null;
 let analytics;
-try {
-  analytics = getAnalytics(app);
-} catch (e) {
-  console.warn("Firebase Analytics falhou ao iniciar (provavelmente bloqueador de anúncios):", e);
-}
 
-const db = getFirestore(app);
+// Initialize Firebase Safely
+try {
+  app = initializeApp(firebaseConfig);
+  try {
+    db = getFirestore(app);
+  } catch (dbError) {
+    console.error("Erro ao iniciar Firestore:", dbError);
+  }
+  try {
+    analytics = getAnalytics(app);
+  } catch (analyticsError) {
+    // Analytics often fails with ad-blockers, ignore it
+    console.warn("Analytics blocked or failed:", analyticsError);
+  }
+} catch (error) {
+  console.error("CRITICAL: Firebase initialization failed completely.", error);
+}
 
 // Collection Reference
 const REMINDERS_COLLECTION = 'smart_home_reminders';
 
 // Add a new reminder
 export const addReminderToDB = async (text: string, type: 'alert' | 'action' | 'info' = 'info') => {
+  if (!db) {
+    console.warn("Firestore não está disponível. Lembrete não salvo na nuvem.");
+    return false;
+  }
   try {
     console.log("Tentando adicionar lembrete ao Firestore:", text);
     await addDoc(collection(db, REMINDERS_COLLECTION), {
@@ -58,22 +71,32 @@ export const addReminderToDB = async (text: string, type: 'alert' | 'action' | '
 
 // Subscribe to reminders (Real-time)
 export const subscribeToReminders = (callback: (reminders: Reminder[]) => void) => {
-  const q = query(collection(db, REMINDERS_COLLECTION), orderBy("createdAt", "desc"));
-  
-  return onSnapshot(q, 
-    (snapshot) => {
-      const reminders: Reminder[] = snapshot.docs.map(doc => ({
-        text: doc.data().text,
-        time: doc.data().time || '--:--',
-        type: doc.data().type || 'info'
-      }));
-      console.log("Lembretes atualizados do Firestore:", reminders.length);
-      callback(reminders);
-    },
-    (error) => {
-      console.error("Erro na assinatura do Firestore (verifique regras de segurança ou conexão):", error);
-    }
-  );
+  if (!db) {
+    console.warn("Firestore indisponível para assinatura em tempo real.");
+    return () => {};
+  }
+
+  try {
+    const q = query(collection(db, REMINDERS_COLLECTION), orderBy("createdAt", "desc"));
+    
+    return onSnapshot(q, 
+      (snapshot) => {
+        const reminders: Reminder[] = snapshot.docs.map(doc => ({
+          text: doc.data().text,
+          time: doc.data().time || '--:--',
+          type: doc.data().type || 'info'
+        }));
+        console.log("Lembretes atualizados do Firestore:", reminders.length);
+        callback(reminders);
+      },
+      (error) => {
+        console.error("Erro na assinatura do Firestore (verifique regras de segurança ou conexão):", error);
+      }
+    );
+  } catch (e) {
+    console.error("Erro ao configurar listener do Firestore:", e);
+    return () => {};
+  }
 };
 
 export { app, analytics, db };
