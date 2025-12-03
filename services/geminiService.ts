@@ -1,7 +1,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { addReminderToDB } from "./firebase";
 
-const ai = new GoogleGenAI({ apiKey: "gen-lang-client-0108694645" });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- CHEF ASSISTANT ---
 export const getChefSuggestion = async (userInput: string): Promise<string> => {

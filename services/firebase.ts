@@ -13,15 +13,15 @@ import { Reminder } from "../types";
 
 console.log("Carregando serviço Firebase...");
 
-// Your web app's Firebase configuration
+// Configuração do Firebase - RADIO ESCOLA
 const firebaseConfig = {
-  apiKey: "AIzaSyDrwC791rplIiqOeXKZTlCaacM8YhKkQdw",
-  authDomain: "lista-de-compras-4420b.firebaseapp.com",
-  projectId: "lista-de-compras-4420b",
-  storageBucket: "lista-de-compras-4420b.firebasestorage.app",
-  messagingSenderId: "457388372289",
-  appId: "1:457388372289:web:f210e74b357e03ca5b71c0",
-  measurementId: "G-DRMYGDKDDE"
+  apiKey: "AIzaSyBobD3LT1ceO_OjpzFTjrvSYxbfJ4lRr8Y",
+  authDomain: "radio-escola-551bf.firebaseapp.com",
+  projectId: "radio-escola-551bf",
+  storageBucket: "radio-escola-551bf.firebasestorage.app",
+  messagingSenderId: "933210700886",
+  appId: "1:933210700886:web:3fb4212ca622d19218cff7",
+  measurementId: "G-65XY9BC4M9"
 };
 
 let app;
@@ -40,7 +40,6 @@ try {
   try {
     analytics = getAnalytics(app);
   } catch (analyticsError) {
-    // Analytics often fails with ad-blockers, ignore it
     console.warn("Analytics blocked or failed:", analyticsError);
   }
 } catch (error) {

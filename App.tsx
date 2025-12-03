@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { 
   CloudRain, Sun, Cloud, ArrowRight, ArrowLeft, Bell, Sparkles, ChefHat, X, Send, Newspaper, Moon, Plus, Clock, MapPin, 
   MoveDiagonal, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Settings, Mic, User, Calendar, Download, Lock, Unlock,
@@ -9,15 +10,15 @@ import {
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
-// --- CONFIGURAÇÃO FIREBASE ---
+// --- CONFIGURAÇÃO FIREBASE (RADIO ESCOLA) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDrwC791rplIiqOeXKZTlCaacM8YhKkQdw",
-  authDomain: "lista-de-compras-4420b.firebaseapp.com",
-  projectId: "lista-de-compras-4420b",
-  storageBucket: "lista-de-compras-4420b.firebasestorage.app",
-  messagingSenderId: "457388372289",
-  appId: "1:457388372289:web:f210e74b357e03ca5b71c0",
-  measurementId: "G-DRMYGDKDDE"
+  apiKey: "AIzaSyBobD3LT1ceO_OjpzFTjrvSYxbfJ4lRr8Y",
+  authDomain: "radio-escola-551bf.firebaseapp.com",
+  projectId: "radio-escola-551bf",
+  storageBucket: "radio-escola-551bf.firebasestorage.app",
+  messagingSenderId: "933210700886",
+  appId: "1:933210700886:web:3fb4212ca622d19218cff7",
+  measurementId: "G-65XY9BC4M9"
 };
 
 let db = null;
@@ -40,7 +41,7 @@ const speak = (text) => {
 
 // --- COMPONENTE AUXILIAR: WIDGET REDIMENSIONÁVEL ---
 interface ResizableWidgetProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   scale: number;
   onScaleChange: (scale: number) => void;
   origin?: string;
@@ -180,8 +181,6 @@ const App = () => {
   const wakeWordRecognitionRef = useRef(null);
   const commandRecognitionRef = useRef(null);
 
-  const apiKey = "gen-lang-client-0108694645"; 
-
   // --- LÓGICA DE RESIZE (HANDLERS) ---
   const handleMove = (e) => {
     if (!isResizingWidth.current && !isResizingHeight.current) return;
@@ -235,18 +234,16 @@ const App = () => {
     setIsActiveProcessing(true);
     const systemPrompt = `Você é o assistente "Smart Home". Analise: "${commandText}". Se for lembrete: {"action": "add_reminder", "text": "...", "type": "info"}. Se for conversa: {"action": "chat", "response": "..."}. Retorne JSON.`;
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: systemPrompt,
+        config: { responseMimeType: 'application/json' }
       });
-      const data = await res.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const result = JSON.parse(jsonMatch[0]);
-        if (result.action === 'add_reminder') { await addReminderToDB(result.text, result.type || 'info'); speak(`Adicionei ${result.text} aos lembretes.`); } 
-        else if (result.action === 'chat') { speak(result.response); }
-      } else { speak("Desculpe, não entendi."); }
-    } catch (e) { console.error("Erro IA:", e); speak("Erro ao processar."); } 
+      const result = JSON.parse(response.text);
+      if (result.action === 'add_reminder') { await addReminderToDB(result.text, result.type || 'info'); speak(`Adicionei ${result.text} aos lembretes.`); } 
+      else if (result.action === 'chat') { speak(result.response); }
+    } catch (e) { console.error("Erro IA:", e); speak("Desculpe, não entendi."); } 
     finally { setIsActiveProcessing(false); startWakeWordListening(); }
   };
 
@@ -436,11 +433,12 @@ const App = () => {
     setIsChefLoading(true); setChefResponse('');
     const context = `Você é o SMART HOME, um assistente doméstico para a família (André e Marcelly). Seja útil, educado e conciso.`;
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: `${context} Pergunta do usuário sobre culinária: ${chefInput}` }] }] })
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `${context} Pergunta do usuário sobre culinária: ${chefInput}`
       });
-      const data = await res.json();
-      setChefResponse(data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem ideias.");
+      setChefResponse(response.text || "Sem ideias.");
     } catch (e) { setChefResponse("Erro ao conectar."); } 
     finally { setIsChefLoading(false); }
   };
@@ -498,8 +496,9 @@ const App = () => {
     }, 3000);
   };
 
+  // Alterações no NewsWidget: Removida animate-fade-in e aumentado text-xs para text-sm/text-base
   const NewsWidget = ({ category, color, data, index }) => (
-    <div className="flex gap-3 items-center animate-fade-in transition-all duration-700 h-[70px] group">
+    <div className="flex gap-3 items-center transition-all duration-300 h-[70px] group">
       <div className={`w-1 h-full rounded-full ${color} opacity-80 flex-shrink-0`} />
       <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border border-white/10 shadow-sm relative bg-white/10">
         <img 
@@ -515,7 +514,8 @@ const App = () => {
           <span className={`text-[10px] uppercase font-bold tracking-wider ${color.replace('bg-', 'text-')}`}>{category}</span>
           <span className="text-[9px] text-white/40 flex items-center gap-1"><Clock size={8} /> {data[index]?.time || 'Agora'}</span>
         </div>
-        <p className="text-xs font-light leading-snug text-gray-200 line-clamp-2">{data[index]?.text || "Carregando..."}</p>
+        {/* Fonte atualizada para text-sm e font-light para combinar com lembretes */}
+        <p className="text-sm font-light leading-snug text-gray-200 line-clamp-2">{data[index]?.text || "Carregando..."}</p>
       </div>
     </div>
   );
