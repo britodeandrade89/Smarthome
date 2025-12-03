@@ -4,9 +4,10 @@ import { WeatherData } from '../types';
 
 interface WeatherWidgetProps {
   weather: WeatherData;
+  locationName?: string;
 }
 
-const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather }) => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather, locationName = 'Maricá, RJ' }) => {
   const { temperature, weathercode, is_day } = weather;
   
   // State for scaling
@@ -23,17 +24,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather }) => {
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
 
-      // Calculate distance moved. 
-      // Moving left (decreasing X) or down (increasing Y) should increase scale 
-      // because origin is top-right and handle is bottom-left.
       const deltaX = startPos.current.x - clientX;
       const deltaY = clientY - startPos.current.y;
       
-      // Average the movement for smooth scaling
       const delta = (deltaX + deltaY) / 2;
-      const sensitivity = 0.003; // Adjust sensitivity
+      const sensitivity = 0.003; 
       
-      // Limit scale between 0.6x and 1.5x
       const newScale = Math.min(1.5, Math.max(0.6, initialScale.current + delta * sensitivity));
       setScale(newScale);
     };
@@ -93,8 +89,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather }) => {
             <span className="text-5xl md:text-7xl font-bold tracking-tight leading-none text-white">
               {temperature !== '--' ? `${Math.round(Number(temperature))}°` : '--'}
             </span>
-            <span className="text-xs md:text-sm uppercase tracking-[0.2em] font-medium text-white/70 mt-1">
-              Maricá, RJ
+            <span className="text-xs md:text-sm uppercase tracking-[0.2em] font-medium text-white/70 mt-1 max-w-[150px] truncate text-right">
+              {locationName}
             </span>
           </div>
           <div className="drop-shadow-md">
@@ -103,9 +99,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ weather }) => {
         </div>
       </div>
 
-      {/* Resize Handle (Bottom-Left Corner) */}
+      {/* Resize Handle */}
       <div 
-        className="absolute -bottom-2 -left-2 w-8 h-8 cursor-sw-resize flex items-end justify-start p-1 opacity-0 group-hover/widget:opacity-100 transition-opacity"
+        className="absolute -bottom-4 -left-4 w-10 h-10 cursor-sw-resize flex items-end justify-start p-2 opacity-0 group-hover/widget:opacity-100 transition-opacity z-50"
         onMouseDown={startDrag}
         onTouchStart={startDrag}
         title="Arraste para redimensionar"
