@@ -11,6 +11,8 @@ import {
 } from "firebase/firestore";
 import { Reminder } from "../types";
 
+console.log("Carregando serviço Firebase...");
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDrwC791rplIiqOeXKZTlCaacM8YhKkQdw",
@@ -31,6 +33,7 @@ try {
   app = initializeApp(firebaseConfig);
   try {
     db = getFirestore(app);
+    console.log("Firestore inicializado com sucesso.");
   } catch (dbError) {
     console.error("Erro ao iniciar Firestore:", dbError);
   }
